@@ -400,10 +400,3 @@ echo "described in the 'Fusion Installation.pdf' document, chapter 4 (the"
 echo "document should be present in this folder)"
 echo ""
 echo "If this is an update, no need to do anything else"
-
-
-
-
-
-
-
