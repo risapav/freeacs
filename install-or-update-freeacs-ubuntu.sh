@@ -75,13 +75,13 @@ function download_freeacs {
 
   echo ""
   echo "Downloads all necessary resources from freeacs.com:"
-  files=( "Fusion Installation.pdf" core.war install2013R1.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
+  files=( "Fusion_Installation.pdf" core.war install2013R1.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
 
   for i in "${files[@]}" 
   do
     if [ ! -f "$i" ] ; then
       echo "  downloading freeacs.com/download/$i"
-	  wget --no-check-certificate --content-disposition "https://github.com/risapav/freeacs/download/$1"
+	  wget --no-check-certificate --content-disposition https://github.com/risapav/freeacs/download/$1
       # wget -q "freeacs.com/download/$i"
 	else 
       rm "$i"*
@@ -92,7 +92,7 @@ function download_freeacs {
 		exit
 	  fi 
 	  echo "  downloading freeacs.com/download/$i (overwriting previous download)"
-	  wget --no-check-certificate --content-disposition "https://github.com/risapav/freeacs/download/$1"
+	  wget --no-check-certificate --content-disposition https://github.com/risapav/freeacs/download/$1
       # wget -q "freeacs.com/download/$i"
 	fi 
     if [ ! -f "$i" ] ; then
