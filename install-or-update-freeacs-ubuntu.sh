@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 ###########################
 # FUNCTION DEFINTIONS BEGIN
 ###########################
@@ -75,7 +73,7 @@ function download_freeacs {
 
   echo ""
   echo "Downloads all necessary resources from freeacs.com:"
-  files=( "Fusion_Installation.pdf" core.war install2013R1.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
+  files=( Fusion_Installation.pdf core.war install2013R1.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
 
   for i in "${files[@]}" 
   do
