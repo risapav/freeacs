@@ -78,8 +78,8 @@ function download_freeacs {
   for i in "${files[@]}" 
   do
     if [ ! -f "$i" ] ; then
-      echo "  downloading freeacs.com/download/$i"
-	  wget --no-check-certificate --content-disposition https://github.com/risapav/freeacs/download/$1
+      echo "  downloading https://github.com/risapav/freeacs/blob/master/download/$i"
+	  wget --verbose --no-check-certificate --content-disposition https://github.com/risapav/freeacs/blob/master/download/$i
       # wget -q "freeacs.com/download/$i"
 	else 
       rm "$i"*
@@ -89,8 +89,8 @@ function download_freeacs {
 		echo "installation"
 		exit
 	  fi 
-	  echo "  downloading freeacs.com/download/$i (overwriting previous download)"
-	  wget --no-check-certificate --content-disposition https://github.com/risapav/freeacs/download/$1
+	  echo "  downloading https://github.com/risapav/freeacs/blob/master/download/$i (overwriting previous download)"
+	  wget --verbose  --no-check-certificate --content-disposition https://github.com/risapav/freeacs/blob/master/download/$i
       # wget -q "freeacs.com/download/$i"
 	fi 
     if [ ! -f "$i" ] ; then
