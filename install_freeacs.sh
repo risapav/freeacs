@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -xv
 
 clear # clear terminal window
 TRUE='1'
@@ -66,6 +66,7 @@ cat tmp/.tmp
     fi
 }
 #################################
+#only root is allowed to change system settings
 function are_you_root {
     echo "Prepare system for installation"
     read -p "Do you run this script with sudo (root) permission? (y/n) " yn
@@ -77,6 +78,7 @@ function are_you_root {
     mkdir tmp
 }
 ####################################
+#install/update necessary applications
 function install_apps {
     apt-get update
     apt-get install zip unzip
@@ -85,9 +87,9 @@ function install_apps {
     apt-get install $TOMCAT
 }
 ####################################
+#prepare ports on which tomcat will be listen to
 function prepare_ports {
-    echo "Preparation to allow tomcat use ports"
-
+   
     PORTS=(100 8080 443)
 
     for i in "${PORTS[@]}"
@@ -104,8 +106,8 @@ function prepare_ports {
     chown $TOMCAT:$TOMCAT /etc/ssl/certs/java/cacerts
 }
 ###################################
-function download_resources {
-    echo "download_resources"
+#load prepared web app files from repository
+function download_resources {  
 
     FILES=( Fusion_Installation.pdf core.war install2013R1.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
 
@@ -118,8 +120,8 @@ function download_resources {
     done
 }
 ###################################
+#setup mysql database to accept tomcat users
 function database_setup {
-    echo "database_setup"
 
     mkdir tmp/tables 2> /dev/null
     unzip -o -q -d tmp/tables/ tmp/tables.zip
@@ -167,8 +169,8 @@ function database_setup {
     echo ""
 }
 ###################################
+#configure tomcat server
 function tomcat_setup {
-    echo "tomcat_setup"
 
     mkdir /var/lib/$TOMCAT/shell 2> /dev/null
     echo ""
@@ -261,8 +263,8 @@ function tomcat_setup {
     echo ""
 }
 ###################################
+#configure remote shell accesible via web
 function shell_setup {
-    echo "shell_setup"
     
     echo "cd /var/lib/$TOMCAT/shell" > /usr/bin/fusionshell
     echo "java -jar shell.jar" >> /usr/bin/fusionshell
@@ -283,12 +285,13 @@ function shell_setup {
     echo ""
 }
 ###################################
+#tidy up after completed configuration
 function cleanup {
-    echo "clean up tmp"
     rm -R tmp/
 }
 ###################################
 #main app
+###################################
 are_you_root
 install_apps 
 prepare_ports
@@ -298,3 +301,4 @@ database_setup
 tomcat_setup
 shell_setup
 cleanup
+###################################
