@@ -21,6 +21,12 @@ function are_you_root {
       *     ) echo "Installation must be run with root permission."
               exit;;
     esac
+	
+	if (( $EUID != 0 )); then
+		echo "Please run as root"
+		exit
+	fi
+	
     mkdir tmp
 }
 ####################################
