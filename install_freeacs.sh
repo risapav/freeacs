@@ -6,65 +6,11 @@ TOMCAT="tomcat8"
 MYSQL="mysql-server-5.7"
 JDK="openjdk-8-jre-headless"
 
-#################################
-function create_freeacsdbuser {
-    freeacsdbuserok=`mysql -uroot -p$mysqlrootpw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" 2> /dev/null | tail -n1`
-echo "pozor1 $freeacsdbuserok"
-    if [ "$freeacsdbuserok" != '2' ] ; then
-        mysql -uroot -p$mysqlrootpw -e "CREATE DATABASE xaps" 2> /dev/null
-        mysql -uroot -p$mysqlrootpw xaps -e "GRANT ALL ON xaps.* TO 'xaps' IDENTIFIED BY '$acsdbpw'"  2> tmp/.tmp
-        mysql -uroot -p$mysqlrootpw xaps -e "GRANT ALL ON xaps.* TO 'xaps'@'localhost' IDENTIFIED BY '$acsdbpw'" 2>> tmp/.tmp
-        freeacsdbuserok=`mysql -uroot -p$mysqlrootpw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" 2> /dev/null | tail -n1`
-echo "pozor2 $freeacsdbuserok"
-        if [ "$freeacsdbuserok" != '2' ] ; then
-            echo "The FreeACS MySQL database users 'xaps' and 'xaps'@'localhost' is not found"
-            echo "in the mysql.user table. Maybe you stated the wrong MySQL root password??"
-            echo "Please make sure this is corrected, either by running this script again with"
-            echo "the correct root password or by running the equivalent of the following"
-            echo " SQL-statements:"
-            echo ""
-            echo "Running as MySQL Root user:"
-            echo "  CREATE DATABASE xaps"
-            echo "  GRANT ALL ON xaps.* TO 'xaps' IDENTIFIED BY 'A_PASSWORD'"
-            echo "  GRANT ALL ON xaps.* TO 'xaps'@'localhost' IDENTIFIED BY 'A_PASSWORD'"
-            echo ""
-            echo "Below are stderr output from the commands above - they may indicate"
-            echo "the problem at hand:"
-            echo "------------------------------------------------"
-            cat tmp/.tmp
-            echo "------------------------------------------------"
-            echo ""
-            exit
-        else
-            echo ""
-            echo "The FreeACS MySQL database user is OK. "
-            echo ""
-        fi
-    else
-        echo ""
-        echo "The FreeACS MySQL database user is OK. "
-        echo ""
-    fi
-}
-#################################
-function load_database_tables {
-    echo ""
-    echo "Loads all FreeACS table defintions into MySQL"
-    mysql -uxaps -p$acsdbpw xaps < tmp/install2013R1.sql 2> tmp/.tmp
-    installtables=`wc -l tmp/.tmp | cut -b1-1`
-echo "pozor 3 $installtables"
-cat tmp/.tmp
-    if [ "$installtables" != '1' ] ; then
-        echo "The output from the installation of the tables indicate some"
-        echo "errors occurred:"
-        echo "------------------------------------------------"
-        cat tmp/.tmp
-        echo "------------------------------------------------"  
-        exit
-    else
-        echo "Loading of all FreeACS tables was OK"
-    fi
-}
+#mysql variables
+MYSQLROOTPW=""	# root password
+ACSDBPW=""		# acs user password
+OLDACSDBPW=""	# old acs user password
+
 #################################
 #only root is allowed to change system settings
 function are_you_root {
@@ -119,6 +65,67 @@ function download_resources {
         fi 
     done
 }
+#################################
+# add xaps user into mysql
+function create_freeacsdbuser {
+    freeacsdbuserok=`mysql -uroot -p$MYSQLROOTPW -e "SELECT count(user) FROM mysql.user where user = 'xaps'" 2> /dev/null | tail -n1`
+echo "pozor1 $freeacsdbuserok"
+    if [ "$freeacsdbuserok" != '2' ] ; then
+        mysql -uroot -p$MYSQLROOTPW -e "CREATE DATABASE xaps" 2> /dev/null
+        mysql -uroot -p$MYSQLROOTPW xaps -e "GRANT ALL ON xaps.* TO 'xaps' IDENTIFIED BY '$ACSDBPW'"  2> tmp/.tmp
+        mysql -uroot -p$MYSQLROOTPW xaps -e "GRANT ALL ON xaps.* TO 'xaps'@'localhost' IDENTIFIED BY '$ACSDBPW'" 2>> tmp/.tmp
+        freeacsdbuserok=`mysql -uroot -p$MYSQLROOTPW -e "SELECT count(user) FROM mysql.user where user = 'xaps'" 2> /dev/null | tail -n1`
+echo "pozor2 $freeacsdbuserok"
+        if [ "$freeacsdbuserok" != '2' ] ; then
+            echo "The FreeACS MySQL database users 'xaps' and 'xaps'@'localhost' is not found"
+            echo "in the mysql.user table. Maybe you stated the wrong MySQL root password??"
+            echo "Please make sure this is corrected, either by running this script again with"
+            echo "the correct root password or by running the equivalent of the following"
+            echo " SQL-statements:"
+            echo ""
+            echo "Running as MySQL Root user:"
+            echo "  CREATE DATABASE xaps"
+            echo "  GRANT ALL ON xaps.* TO 'xaps' IDENTIFIED BY 'A_PASSWORD'"
+            echo "  GRANT ALL ON xaps.* TO 'xaps'@'localhost' IDENTIFIED BY 'A_PASSWORD'"
+            echo ""
+            echo "Below are stderr output from the commands above - they may indicate"
+            echo "the problem at hand:"
+            echo "------------------------------------------------"
+            cat tmp/.tmp
+            echo "------------------------------------------------"
+            echo ""
+            exit
+        else
+            echo ""
+            echo "The FreeACS MySQL database user is OK. "
+            echo ""
+        fi
+    else
+        echo ""
+        echo "The FreeACS MySQL database user is OK. "
+        echo ""
+    fi
+}
+#################################
+# transfer all tables into mysql DB
+function load_database_tables {
+    echo ""
+    echo "Loads all FreeACS table defintions into MySQL"
+    mysql -uxaps -p$ACSDBPW xaps < tmp/install2013R1.sql 2> tmp/.tmp
+    installtables=`wc -l tmp/.tmp | cut -b1-1`
+echo "pozor 3 $installtables"
+cat tmp/.tmp
+    if [ "$installtables" != '1' ] ; then
+        echo "The output from the installation of the tables indicate some"
+        echo "errors occurred:"
+        echo "------------------------------------------------"
+        cat tmp/.tmp
+        echo "------------------------------------------------"  
+        exit
+    else
+        echo "Loading of all FreeACS tables was OK"
+    fi
+}
 ###################################
 #setup mysql database to accept tomcat users
 function database_setup {
@@ -128,8 +135,8 @@ function database_setup {
 
     verified='n'
     until [ $verified == 'y' ] || [ $verified == 'Y' ]; do
-        read -p "State the root password for the MySQL database: " mysqlrootpw
-        read -p "Is [$mysqlrootpw] correct? (y/n) " verified
+        read -p "State the root password for the MySQL database: " MYSQLROOTPW
+        read -p "Is [$MYSQLROOTPW] correct? (y/n) " verified
     done
     echo ""
     echo "Specify/create the password for the FreeACS MySQL user."
@@ -141,13 +148,13 @@ function database_setup {
 
     verified='n'
     until [ $verified == 'y' ] || [ $verified == 'Y' ]; do
-        read -p "Specify/create the password for the FreeACS MySQL user: " acsdbpw
-        read -p "Is [$acsdbpw] correct? (y/n) " verified
+        read -p "Specify/create the password for the FreeACS MySQL user: " ACSDBPW
+        read -p "Is [$ACSDBPW] correct? (y/n) " verified
     done
     echo ""
     create_freeacsdbuser
 
-    tablepresent=`mysql -uxaps -p$acsdbpw xaps -e "SHOW TABLES LIKE 'unit_type'" 2> /dev/null  | wc -l`
+    tablepresent=`mysql -uxaps -p$ACSDBPW xaps -e "SHOW TABLES LIKE 'unit_type'" 2> /dev/null  | wc -l`
     if [ "$tablepresent" == "2" ] ; then
         echo "WARNING! An important FreeACS table is found in the database,"
             echo "indicating that the database tables have already been loaded. "
@@ -187,8 +194,8 @@ function tomcat_setup {
     zip -d -q tmp/shell.jar xaps-shell*.properties > /dev/null 2>&1
 
     # Changes the default FreeACS MySQL password in the property files
-    oldacsdbpw=`grep -e "^db.xaps.url" xaps-tr069.properties | cut -d" " -f3 | cut -b6-40 | cut -d"@" -f1`
-    sed -i 's/xaps\/'$oldacsdbpw'/xaps\/'$acsdbpw'/g' *.properties
+    OLDACSDBPW=`grep -e "^db.xaps.url" xaps-tr069.properties | cut -d" " -f3 | cut -b6-40 | cut -d"@" -f1`
+    sed -i 's/xaps\/'$OLDACSDBPW'/xaps\/'$ACSDBPW'/g' *.properties
 
     echo "NB! Important! Checks to see whether you have some existing" 
     echo "configuration of FreeACS. In that case, a diff between the" 
