@@ -1,4 +1,3 @@
-
 -- start work with our database xaps
 USE 'xaps';
 -- Tables with no or minimal foreign keys
