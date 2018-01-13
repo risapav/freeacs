@@ -1,0 +1,74 @@
+comments="
+    if [ "$freeacsdbuserok" != '2' ] ; then
+        printf "CREATE DATABASE \`xaps\`;\n" > mkdb.sql
+        printf "GRANT ALL ON xaps.* TO \`xaps\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
+        printf "GRANT ALL ON xaps.* TO \`xaps\`@\`localhost\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
+        mysql --defaults-extra-file=root.pw -e mkdb.sql
+        freeacsdbuserok=`mysql --defaults-extra-file=root.pw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" 2> /dev/null | tail -n1`
+
+        if [ "$freeacsdbuserok" != '2' ] ; then
+            echo "The FreeACS MySQL database users 'xaps' and 'xaps'@'localhost' is not found"
+            echo "in the mysql.user table. Maybe you stated the wrong MySQL root password??"
+            echo "Please make sure this is corrected, either by running this script again with"
+            echo "the correct root password or by running the equivalent of the following"
+            echo " SQL-statements:"
+            echo ""
+            echo "Running as MySQL Root user:"
+            echo "  CREATE DATABASE xaps"
+            echo "  GRANT ALL ON xaps.* TO 'xaps' IDENTIFIED BY 'A_PASSWORD'"
+            echo "  GRANT ALL ON xaps.* TO 'xaps'@'localhost' IDENTIFIED BY 'A_PASSWORD'"
+            echo ""
+            echo "Below are stderr output from the commands above - they may indicate"
+            echo "the problem at hand:"
+            echo "------------------------------------------------"
+            cat .tmp
+            echo "------------------------------------------------"
+            echo ""
+            exit
+        else
+            echo ""
+            echo "The FreeACS MySQL database user is OK. "
+            echo ""
+        fi
+    else
+        echo ""
+        echo "The FreeACS MySQL database user is OK. "
+        echo ""
+    fi
+"
+
+    installtables=`wc -l .tmp | cut -b1-1`
+echo "pozor 3 $installtables"
+cat .tmp
+    if [ "$installtables" != '1' ] ; then
+        echo "The output from the installation of the tables indicate some"
+        echo "errors occurred:"
+        echo "------------------------------------------------"
+        cat .tmp
+        echo "------------------------------------------------"  
+        exit
+    else
+        echo "Loading of all FreeACS tables was OK"
+    fi
+
+
+    if [ "$tablepresent" == "2" ] ; then
+        echo "WARNING! An important FreeACS table is found in the database,"
+        echo "indicating that the database tables have already been loaded. "
+        echo "If you decide to load all table definitions, you will delete "
+        echo "ALL FreeACS data in the database, and start over."
+        verified='n'
+        until [ $verified == 'y' ] || [ $verified == 'Y' ]; 
+        do
+            read -p "Load all table defintions (and overwriting all data)? (y/n): " yn
+            read -p "Is [$yn] correct? (y/n) " verified
+        done
+        echo 
+        if [ "$yn" == 'y' ] ; then
+            load_database_tables
+        fi
+    else
+        load_database_tables
+    fi
+    echo ""
+    cd ..
