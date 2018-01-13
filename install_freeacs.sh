@@ -21,6 +21,7 @@ function are_you_root {
     fi
 	
     mkdir tmp
+    cd tmp
 }
 ####################################
 #install/update necessary applications
@@ -54,13 +55,13 @@ function prepare_ports {
 #load prepared web app files from repository
 function download_resources {  
 
-    FILES=( Fusion_Installation.pdf core.war install_db.sql monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
+    FILES=( Fusion_Installation.pdf create_db.sql install_db.sql core.war monitor.war shell.jar spp.war stun.war syslog.war tr069.war web.war ws.war tables.zip )
 
     for i in "${FILES[@]}" 
     do
         if [ ! -f "$i" ] ; then
             echo "  downloading https://raw.githubusercontent.com/risapav/freeacs/master/download/$i"
-            wget -P tmp --verbose --no-check-certificate --content-disposition https://raw.githubusercontent.com/risapav/freeacs/master/download/$i
+            wget --verbose --no-check-certificate --content-disposition https://raw.githubusercontent.com/risapav/freeacs/master/download/$i
         fi 
     done
 }
@@ -68,9 +69,9 @@ function download_resources {
 # add xaps user into mysql
 function create_freeacsdbuser {
     echo "create_freeacsdbuser start----------------------------------------------------------------"
+    mysql --defaults-extra-file=root.pw -e create_db.sql
     freeacsdbuserok=`mysql --defaults-extra-file=root.pw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" #2> /dev/null | tail -n1`
-    printf "CREATE DATABASE \`xaps\`;\n" > mkdb.sql
-    printf "GRANT ALL ON xaps.* TO \`xaps\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
+    printf "GRANT ALL ON xaps.* TO \`xaps\` IDENTIFIED BY '%s';\n" "$ACSDBPW" > mkdb.sql
     printf "GRANT ALL ON xaps.* TO \`xaps\`@\`localhost\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
     mysql --defaults-extra-file=root.pw -e mkdb.sql
     echo "create_freeacsdbuser stop----------------------------------------------------------------"
@@ -245,12 +246,9 @@ function cleanup {
 are_you_root
 install_apps 
 prepare_ports
-
 download_resources
-cd tmp
 database_setup
 tomcat_setup
 shell_setup
-cd ..
 cleanup
 ###################################
