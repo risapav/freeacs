@@ -69,20 +69,19 @@ function download_resources {
 #################################
 # add xaps user into mysql
 function create_freeacsdbuser {
-    echo "create_freeacsdbuser start----------------------------------------------------------------"
-    mysql --defaults-extra-file=root.pw < create_db.sql > ../dump1.txt
-    freeacsdbuserok=`mysql --defaults-extra-file=root.pw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" #2> /dev/null | tail -n1`
+    # create DB xaps if not exist
+    mysql --defaults-extra-file=root.pw < create_db.sql
+    # freeacsdbuserok=`mysql --defaults-extra-file=root.pw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" #2> /dev/null | tail -n1`
     printf "GRANT ALL ON xaps.* TO \`xaps\` IDENTIFIED BY '%s';\n" "$ACSDBPW" > mkdb.sql
     printf "GRANT ALL ON xaps.* TO \`xaps\`@\`localhost\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
-    mysql --defaults-extra-file=root.pw < mkdb.sql > ../dump2.txt
-    echo "create_freeacsdbuser stop----------------------------------------------------------------"
+    # make user xaps to access DB xaps
+    mysql --defaults-extra-file=root.pw < mkdb.sql
 }
 #################################
 # transfer all tables into mysql DB
 function load_database_tables {
-    echo "load_database_tables stop----------------------------------------------------------------"
+    # transfer all tables into xaps DB
     mysql --defaults-extra-file=user.pw < install_db.sql #2> .tmp
-    echo "load_database_tables stop----------------------------------------------------------------"
 }
 ###################################
 #setup mysql database to accept tomcat users
@@ -90,6 +89,7 @@ function database_setup {
     mkdir tables 2> /dev/null
     unzip -o -q -d tables/ tables.zip
 
+    # read root password to access mysql 
     verified='n'
     until [ $verified == 'y' ] || [ $verified == 'Y' ]; do
         read -p "State the root password for the MySQL database: " MYSQLROOTPW
@@ -106,6 +106,7 @@ function database_setup {
     echo "the change of password into MySQL, but the configuration"
     echo "files will be changed - causing a password mismatch!!"
 
+    # read password to prepare xaps user
     verified='n'
     until [ $verified == 'y' ] || [ $verified == 'Y' ]; do
         read -p "Specify/create the password for the FreeACS MySQL user: " ACSDBPW
@@ -113,11 +114,10 @@ function database_setup {
     done
 
     printf $ACCESSKEY "xaps" "$ACSDBPW" > user.pw
-    
+    # create database xaps
     create_freeacsdbuser
+    # transfer tables into database xaps
     load_database_tables
-    tablepresent=`mysql --defaults-extra-file=user.pw xaps -e "SHOW TABLES LIKE 'unit_type'" 2> /dev/null  | wc -l`
-
 }
 ###################################
 #configure tomcat server
