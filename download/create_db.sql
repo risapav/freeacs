@@ -7,5 +7,5 @@
  * Author:  risap
  * Created: 13.1.2018
  */
-CREATE DATABASE IF NOT EXISTS `xaps`
+CREATE DATABASE IF NOT EXISTS `xaps`;
 
