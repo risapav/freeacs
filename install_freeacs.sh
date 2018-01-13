@@ -7,6 +7,7 @@ MYSQL="mysql-server-5.7"
 JDK="openjdk-8-jre-headless"
 
 #mysql variables
+ACCESSKEY="[client]\nuser=%s\npassword=%s\nhost=localhost\n" # secure mysql access
 MYSQLROOTPW=""	# root password
 ACSDBPW=""	# acs user password
 OLDACSDBPW=""	# old acs user password
@@ -69,18 +70,18 @@ function download_resources {
 # add xaps user into mysql
 function create_freeacsdbuser {
     echo "create_freeacsdbuser start----------------------------------------------------------------"
-    mysql --defaults-extra-file=root.pw -e create_db.sql
+    mysql --defaults-extra-file=root.pw < create_db.sql > ../dump1.txt
     freeacsdbuserok=`mysql --defaults-extra-file=root.pw -e "SELECT count(user) FROM mysql.user where user = 'xaps'" #2> /dev/null | tail -n1`
     printf "GRANT ALL ON xaps.* TO \`xaps\` IDENTIFIED BY '%s';\n" "$ACSDBPW" > mkdb.sql
     printf "GRANT ALL ON xaps.* TO \`xaps\`@\`localhost\` IDENTIFIED BY '%s';\n" "$ACSDBPW" >> mkdb.sql
-    mysql --defaults-extra-file=root.pw -e mkdb.sql
+    mysql --defaults-extra-file=root.pw < mkdb.sql > ../dump2.txt
     echo "create_freeacsdbuser stop----------------------------------------------------------------"
 }
 #################################
 # transfer all tables into mysql DB
 function load_database_tables {
     echo "load_database_tables stop----------------------------------------------------------------"
-    mysql --defaults-extra-file=user.pw -e install_bd.sql #2> .tmp
+    mysql --defaults-extra-file=user.pw < install_db.sql #2> .tmp
     echo "load_database_tables stop----------------------------------------------------------------"
 }
 ###################################
@@ -95,7 +96,7 @@ function database_setup {
         read -p "Is [$MYSQLROOTPW] correct? (y/n) " verified
     done
 
-    printf "[client]\nuser = %s\npassword = %s" "root" "$MYSQLROOTPW" > root.pw
+    printf $ACCESSKEY "root" "$MYSQLROOTPW" > root.pw
 
     echo ""
     echo "Specify/create the password for the FreeACS MySQL user."
@@ -111,7 +112,7 @@ function database_setup {
         read -p "Is [$ACSDBPW] correct? (y/n) " verified
     done
 
-    printf "[client]\nuser = %s\npassword = %s" "xaps" "$ACSDBPW" > user.pw
+    printf $ACCESSKEY "xaps" "$ACSDBPW" > user.pw
     
     create_freeacsdbuser
     load_database_tables

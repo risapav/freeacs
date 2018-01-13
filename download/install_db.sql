@@ -1,6 +1,6 @@
 
 -- start work with our database xaps
-USE `xaps`;
+USE 'xaps';
 -- Tables with no or minimal foreign keys
 DROP TABLE IF EXISTS test_history;
 DROP TABLE IF EXISTS test_case_files;
