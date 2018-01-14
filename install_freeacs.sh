@@ -6,6 +6,9 @@ TOMCAT="tomcat8"
 MYSQL="mysql-server-5.7"
 JDK="openjdk-8-jre-headless"
 
+#WEBAPP="/var/lib/$TOMCAT"
+WEBAPP="/opt/tomcat/webapps/examples"
+
 #mysql variables
 ACCESSKEY="[client]\nuser=%s\npassword=%s\nhost=localhost\n" # secure mysql access
 MYSQLROOTPW=""	# root password
@@ -123,7 +126,7 @@ function database_setup {
 #configure tomcat server
 function tomcat_setup {
 
-    mkdir /var/lib/$TOMCAT/shell 2> /dev/null
+    mkdir $WEBAPP/shell
     echo ""
     # Extracts and removes all xaps-*.properties files from the jar/war archives 
     ARCHIVES=( core.war monitor.war spp.war stun.war syslog.war tr069.war web.war ws.war )
@@ -157,8 +160,8 @@ function tomcat_setup {
         for propertyfile in "${PROPERTYFILES[@]}"
         do
             overwrite=''
-            if [ -f /var/lib/$TOMCAT/common/$propertyfile ] ; then
-                diff /var/lib/$TOMCAT/common/$propertyfile $propertyfile > .tmp
+            if [ -f $WEBAPP/common/$propertyfile ] ; then
+                diff $WEBAPP/common/$propertyfile $propertyfile > .tmp
                 if [ -s .tmp ] ; then
                     echo "  $propertyfile diff found, added diff to config-diff.txt - please inspect!"
                     echo "$propertyfile diff:" >> config-diff.txt
@@ -166,10 +169,10 @@ function tomcat_setup {
                     cat .tmp >> config-diff.txt
                     echo "" >> config-diff.txt
                 else 
-                    mv -f $propertyfile /var/lib/$TOMCAT/common
+                    mv -f $propertyfile $WEBAPP/common
             fi
               else
-                mv -f $propertyfile /var/lib/$TOMCAT/common
+                mv -f $propertyfile $WEBAPP/common
             fi      
         done    
     done
@@ -177,8 +180,8 @@ function tomcat_setup {
     PROPERTYFILES=( xaps-shell.properties xaps-shell-logs.properties )
     for propertyfile in "${PROPERTYFILES[@]}"
     do
-        if [ -f /var/lib/$TOMCAT/shell/$propertyfile ] ; then
-            diff /var/lib/$TOMCAT/shell/$propertyfile $propertyfile > .tmp
+        if [ -f $WEBAPP/shell/$propertyfile ] ; then
+            diff $WEBAPP/shell/$propertyfile $propertyfile > .tmp
             if [ -s .tmp ] ; then
                 echo "  $propertyfile diff found, added diff to config-diff.txt - please inspect!"
                 echo "$propertyfile diff:" >> config-diff.txt
@@ -186,10 +189,10 @@ function tomcat_setup {
                 cat .tmp >> config-diff.txt
                 echo "" >> config-diff.txt
             else
-                mv -f $propertyfile /var/lib/$TOMCAT/shell
+                mv -f $propertyfile $WEBAPP/shell
             fi
-        else
-            mv -f $propertyfile /var/lib/$TOMCAT/shell
+       else
+            mv -f $propertyfile $WEBAPP/shell
         fi      
     done
     echo "All property files have been checked. Those which weren't found"
@@ -198,20 +201,20 @@ function tomcat_setup {
 
     # Copies all war, jar and property files into their correct location
     # This actually deploys the application into Tomcat  
-    mv *.war /var/lib/$TOMCAT/webapps
-    mv *.jar /var/lib/$TOMCAT/shell
+    mv *.war $WEBAPP/webapps
+    mv *.jar $WEBAPP/shell
     echo "All WAR/JAR/property files have been moved to Tomcat - servers have been deployed!"
   
     # Makes requests to http://hostname/ redirect to http://hostname/web
-    rm -rf /var/lib/$TOMCAT/webapps/ROOT
-    ln -s /var/lib/$TOMCAT/webapps/web /var/lib/$TOMCAT/webapps/ROOT
+    rm -rf $WEBAPP/webapps/ROOT
+    ln -s $WEBAPP/webapps/web $WEBAPP/webapps/ROOT
   
     # Changes all ownership and permissions - $TOMCAT user owns everything
-    chown -R $TOMCAT:$TOMCAT /var/lib/$TOMCAT
-    chmod g+w /var/lib/$TOMCAT/common /var/lib/$TOMCAT/webapps /var/lib/$TOMCAT/shell
-    chmod g+s /var/lib/$TOMCAT/common /var/lib/$TOMCAT/webapps /var/lib/$TOMCAT/shell
-    echo "All file ownership and permissions have been transferred to the $TOMCAT user"
-    echo ""
+#    chown -R $TOMCAT:$TOMCAT /var/lib/$TOMCAT
+#    chmod g+w /var/lib/$TOMCAT/common /var/lib/$TOMCAT/webapps /var/lib/$TOMCAT/shell
+#    chmod g+s /var/lib/$TOMCAT/common /var/lib/$TOMCAT/webapps /var/lib/$TOMCAT/shell
+#    echo "All file ownership and permissions have been transferred to the $TOMCAT user"
+#    echo ""
 
 
     groupadd tomcat
@@ -220,7 +223,7 @@ function tomcat_setup {
 
     wget http://apache.mirrors.ionfish.org/tomcat/tomcat-8/v8.5.24/bin/apache-tomcat-8.5.24.tar.gz
     tar -xzvf apache-tomcat-8.5.24.tar.gz
-    mv apache-tomcat-8.5.24/* /opt/tomcat
+#    mv apache-tomcat-8.5.24/* /opt/tomcat
 
     chgrp -R tomcat /opt/tomcat
     chown -R tomcat /opt/tomcat
@@ -228,7 +231,7 @@ function tomcat_setup {
 
     JAVA=$(update-java-alternatives -l | awk '{print $NF}')
 
-    cat > /etc/systemd/system/tomcat.service << EOF
+    cat > /etc/systemd/system/tomcat.service << CONFIG
     [Unit]
     Description=Apache Tomcat Web Server
     After=network.target
@@ -254,7 +257,7 @@ function tomcat_setup {
 
     [Install]
     WantedBy=multi-user.target
-    EOF
+CONFIG
 
     # enable firewall ports
     PORTS=(100 8080 443)
@@ -274,7 +277,7 @@ function tomcat_setup {
 #configure remote shell accesible via web
 function shell_setup {
     
-    echo "cd /var/lib/$TOMCAT/shell" > /usr/bin/fusionshell
+    echo "cd $WEBAPP/shell" > /usr/bin/fusionshell
     echo "java -jar shell.jar" >> /usr/bin/fusionshell
     chmod 755 /usr/bin/fusionshell
 
@@ -304,9 +307,9 @@ function cleanup {
 are_you_root
 #install_apps 
 #prepare_ports
-#download_resources
+download_resources
 #database_setup
-#tomcat_setup
+tomcat_setup
 #apt-get update
 
 #shell_setup
