@@ -31,7 +31,7 @@ function install_apps {
     apt-get install zip unzip
     apt-get install $MYSQL
     apt-get install $JDK
-    apt-get install $TOMCAT
+#    apt-get install $TOMCAT $TOMCAT-docs $TOMCAT-examples $TOMCAT-admin
 }
 ####################################
 #prepare ports on which tomcat will be listen to
@@ -212,6 +212,63 @@ function tomcat_setup {
     chmod g+s /var/lib/$TOMCAT/common /var/lib/$TOMCAT/webapps /var/lib/$TOMCAT/shell
     echo "All file ownership and permissions have been transferred to the $TOMCAT user"
     echo ""
+
+
+    groupadd tomcat
+    useradd -s /bin/false -g tomcat -d /opt/tomcat tomcat
+    mkdir /opt/tomcat /opt/tomcat/conf /opt/tomcat/webapps /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs
+
+    wget http://apache.mirrors.ionfish.org/tomcat/tomcat-8/v8.5.24/bin/apache-tomcat-8.5.24.tar.gz
+    tar -xzvf apache-tomcat-8.5.24.tar.gz
+    mv apache-tomcat-8.5.24/* /opt/tomcat
+
+    chgrp -R tomcat /opt/tomcat
+    chown -R tomcat /opt/tomcat
+    chmod -R 755 /opt/tomcat
+
+    JAVA=$(update-java-alternatives -l | awk '{print $NF}')
+
+    cat > /etc/systemd/system/tomcat.service << EOF
+    [Unit]
+    Description=Apache Tomcat Web Server
+    After=network.target
+
+    [Service]
+    Type=forking
+
+    Environment=JAVA_HOME=$JAVA/jre
+    Environment=CATALINA_PID=/opt/tomcat/temp/tomcat.pid
+    Environment=CATALINA_HOME=/opt/tomcat
+    Environment=CATALINA_BASE=/opt/tomcat
+    Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+    Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom'
+
+    ExecStart=/opt/tomcat/bin/startup.sh
+    ExecStop=/opt/tomcat/bin/shutdown.sh
+
+    User=tomcat
+    Group=tomcat
+    UMask=0007
+    RestartSec=15
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+    # enable firewall ports
+    PORTS=(100 8080 443)
+
+    for i in "${PORTS[@]}"
+    do
+        ufw allow $i
+    done
+
+    # run service
+    systemctl daemon-reload
+    systemctl start tomcat
+    #systemctl status tomcat
+    systemctl enable tomcat
 }
 ###################################
 #configure remote shell accesible via web
@@ -245,11 +302,13 @@ function cleanup {
 #main app
 ###################################
 are_you_root
-install_apps 
-prepare_ports
-download_resources
-database_setup
-tomcat_setup
-shell_setup
+#install_apps 
+#prepare_ports
+#download_resources
+#database_setup
+#tomcat_setup
+#apt-get update
+
+#shell_setup
 cleanup
 ###################################
